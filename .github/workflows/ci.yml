@@ -1,0 +1,36 @@
+name: Build, Deploy & Test CV
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build-deploy-test:
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker build -t my-cv:latest .
+
+      - name: Stop old container
+        run: |
+          docker stop my-cv-container || true
+          docker rm my-cv-container || true
+
+      - name: Run container
+        run: docker run -d -p 8083:80 --name my-cv-container my-cv:latest
+
+      - name: Test if CV is served
+        run: |
+          sleep 10
+          if curl -s http://localhost:8083 | grep -q "CV"; then
+            echo "Test Passed: CV is served correctly"
+          else
+            echo "Test Failed: CV not found"
+            exit 1
+          fi
